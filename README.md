@@ -1,4 +1,4 @@
-This is supplemental code for a scientific papers. 
+This is supplemental scripts for a scientific paper. 
 Will be fully released, when the paper get accepted. 
 
 Three sections inculded:  
