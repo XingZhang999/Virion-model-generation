@@ -1,8 +1,8 @@
 % Step 1
-% Crop out a virion from labeled local area, 
+% Crop out a local area, 
 % estimate defocus from this local position, 
 % estimate the angle of in plane rotatation, 
-% and then ganerate a list of Eulor angles that cover the rotational range.
+% and then ganerate a list of Eulor angles that cover the target range.
 
 % read micrograph .mrc files and manual-pick .mod files 
 % writeout two files .rem and .mtx,
