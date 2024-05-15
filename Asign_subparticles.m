@@ -1,34 +1,38 @@
 % Step 3
 % After genaration of 3D models,
-% exclude the bad fitting manually,
+% Use this to exclude the bad fitting,
 % asign all sub-particles from 3D model,
-% the Z value will also be asigned.
-% Three output .star file are in RELION format,
+% and asign the Z value.
+
+% Four types of output files are in RELION (.star) format,
 % mod0 for cleaning particles only,
 % mod1 for asign the Z high for cleaned particles,
 % mod2 for asign Z high and Euler angles from model,
 % mod3 for asign full particles from model.
-% By Xing Zhang @20240106
 
-%clear;clc
+% By Xing Zhang @20240423
+
+clear;clc
 
 files=struct2cell(dir('./cryosparc_DW_*_pt*_model.png'));
 
 % input parameters
 apix = 0.87; % the pixel size of micrographs
-layerinter = 80.5; % the average layer distance in pixel unit
-posinter = 26.4; % the distance of two nearby positions in pixel unit
+% layerinter = 81; % the average layer distance in pixel unit, 80.5
+posinter = 40; % the distance of two nearby positions in pixel unit
 handness = -1; % whether to do a flip on handness 
 dstep = 0.2; % the angle step (in degree) for caculation, 0.2 is good enough
-discut = 9;  % within distance of X pixels
-anglecut = 12; % within angle of X degree
+discut = 7;  % within distance of X pixels, use 7
+anglecut = 4; % within angle of X degree, use 3
+score_use = 2;  % 1 is using dist and angle, 2 is for dist only
+kratio = 1; % only used when score_use is 1, keep it as the same as ganerate model
 
 % optional input 
 dfoffset = 0; % the estimated defocus maybe not the same as virus, so need to addjust
-ifplot = 1; % whether do plot the intermedia results for check
+ifplot = 0; % whether do plot the intermedia results for check
 
 % run for all the particle files
-for i=1:size(files,2)
+for i=  1:size(files,2)
 
     name=char(files(1,i));
     idend=strfind(name,'_model'); 
@@ -70,8 +74,13 @@ for i=1:size(files,2)
     bestshift = single(parameters(6:21));
     centerrem = parameters(22:23);
     %height = parameters(24);
-    rounds = parameters(end)*1.2;
+    layerinter =  parameters(end-1);
+    rounds = parameters(end)*1.0;
 
+    if size(parameters,2) ~= 29
+        error('parameter not match')
+    end
+    
     % prepare global matrix
             Rz=[cosd(-psi),-sind(-psi),0;...
                 sind(-psi),cosd(-psi),0;...
@@ -128,6 +137,7 @@ for i=1:size(files,2)
             tiledlayout(1,3); nexttile; hold on; axis equal;
             plot(rot3D(:,1),rot3D(:,2),'r.');
             plot(b2(:),b3(:),'go');
+            title(sprintf('Refined model'));
         end
 
     % caculate Z and filtering particles
@@ -149,6 +159,10 @@ for i=1:size(files,2)
        
         % find the closest particles in model for each data point
             iffind = ( abs(poslist(ii,1)-rot3D(:,1))<=discut ) .* ( abs(poslist(ii,2)-rot3D(:,2))<=discut );
+            %ifdist = sqrt( sum((poslist(ii,1)-rot3D(:,1)).^2,2) );
+            %errormin = min(ifdist);
+            %iffind = ifdist < discut;
+            
             iffindnum = sum(iffind);
             if iffindnum == 0
                 continue
@@ -166,8 +180,17 @@ for i=1:size(files,2)
             else
                 localID = find(by2way);
             end
-            [mindist,minID] = min(modeldist(logical(by2way)).*modeltheta(logical(by2way)));
-
+            
+            if score_use == 1
+                [mindist,minID] = min(modeldist(logical(by2way)) + modeltheta(logical(by2way)).* kratio );
+            elseif score_use == 2
+                [mindist,minID] = min( modeldist(logical(by2way)) );
+            elseif score_use == 3
+                [mindist,minID] = min( modeltheta(logical(by2way)) );
+            else
+                error('Invalid score_use!');
+            end
+            
             deltaZ = rot3D(globaID(localID(minID)),3);
             deltaDF = deltaZ*(-1)*apix+dfoffset;
             fprintf(fileID2,'%s %d %d %.1f %.1f %.1f %.1f %.1f %.1f %.1f %d %d\n', char(b1(ii)),b2(ii),b3(ii),b4(ii)+deltaDF,b5(ii)+deltaDF,b6(ii),b7(ii),b8(ii),b9(ii),b10(ii),b11(ii),b12(ii)); 
@@ -185,6 +208,7 @@ for i=1:size(files,2)
             nexttile; hold on; axis equal;
             plot(rot3D(model_ind(:,3)==1,1),rot3D(model_ind(:,3)==1,2),'r+'); 
             plot(poslist(poslist(:,3)==1,1),poslist(poslist(:,3)==1,2),'o','color',[0.25,0.25,1]);
+            title(sprintf('Picked particles'));
         end
 
     %% check the filted particles
@@ -200,9 +224,10 @@ for i=1:size(files,2)
             angle=[-eularphi/pi*180,0,0];
             r = BH_defineMatrix(angle, 'Bah', 'forward');
             r = Rz*Rx*Rxangle*r; % for points, invert the order for map space?
-            [angles] = rot_M2eZYZ(inv(reshape(angles,3,3)));
-
-            fprintf(fileID3,'%s %d %d %.1f %.1f %.1f %.1f %.1f %.1f %.1f %d %d\n', char(b1(ii)),b2(ii),b3(ii),b4(ii)-deltaDF,b5(ii)-deltaDF,b6(ii),angles(1:3),b10(ii),b11(ii),b12(ii)); 
+            [angles] = rot_M2eZYZ(inv(r));
+            deltaZ = rot3D(matched(ii),3);
+            deltaDF = deltaZ*handness*apix+dfoffset;
+            fprintf(fileID3,'%s %d %d %.1f %.1f %.1f %.1f %.1f %.1f %.1f %d %d\n', char(b1(1)),rot3D(matched(ii),1:2),b4(1)-deltaDF,b5(1)-deltaDF,b6(1),angles(1:3),b10(1),b11(1),b12(1)); 
 
             if ii == 1
                 continue
@@ -224,9 +249,11 @@ for i=1:size(files,2)
         if ifplot == 1
             nexttile; hold on; axis equal;
             plot(rot3D(model_ind(:,3)>=1,1),rot3D(model_ind(:,3)>=1,2),'r+','color',[1,0.8,0]);
-            plot(poslist(poslist(:,3)==1,1),poslist(poslist(:,3)==1,2),'bo'); 
+            plot(poslist(poslist(:,3)==1,1),poslist(poslist(:,3)==1,2),'bo');
+            title(sprintf('Asigned particles'));
         end
-            figure('Visible','off'); hold on; axis equal;
+        
+            figure('Visible','off'); hold on; axis equal;title(sprintf('Asigned particles'));
             plot(rot3D(model_ind(:,3)>=1,1),rot3D(model_ind(:,3)>=1,2),'r+','color',[1,0.7,0]);
             plot(poslist(poslist(:,3)==1,1),poslist(poslist(:,3)==1,2),'o','color',[0.25,0.25,1]);
             saveas(gcf,asignpng);
@@ -238,9 +265,15 @@ for i=1:size(files,2)
 
         for ii=1:particles_asign
 
+            eularphi=atan2(dy3(matched(ii)),dx3(matched(ii)));
+            angle=[-eularphi/pi*180,0,0];
+            r = BH_defineMatrix(angle, 'Bah', 'forward');
+            r = Rz*Rx*Rxangle*r; % for points, invert the order for map space?
+            [angles] = rot_M2eZYZ(inv(r));
 
-
-            % fprintf(fileID4,'%s %d %d %.1f %.1f %.1f %.1f %.1f %.1f %.1f %d %d\n', char(b1(ii)),b2(ii),b3(ii),b4(ii)-deltaDF,b5(ii)-deltaDF,b6(ii),angles(1:3),b10(ii),b11(ii),b12(ii)); 
+            deltaZ = rot3D(matched(ii),3);
+            deltaDF = deltaZ*handness*apix+dfoffset;
+            fprintf(fileID3,'%s %d %d %.1f %.1f %.1f %.1f %.1f %.1f %.1f %d %d\n', char(b1(1)),rot3D(matched(ii),1:2),b4(1)-deltaDF,b5(1)-deltaDF,b6(1),angles(1:3),b10(1),b11(1),b12(1)); 
 
         end
         fclose(fileID4);
