@@ -12,17 +12,17 @@ files=struct2cell(dir('./cryosparc_DW_*_pt*_srh.star'));
 
 % input parameters
 apix = 0.87; % the pixel size of micrographs
-layer_inter = 80.5; % the average layer distance in pixel unit
+layer_inter = 81; % the average layer distance in pixel unit
 
 % optional input 
-ifplot = 2; % whether do plot the intermedia results for check
+ifplot = 0; % whether do plot the intermedia results for check
             % 0 or 1
             % 2 for check the ratio space 
             % 3 for check the normals 
             % 4 for check the fitting for each sampling ratio 
 
 % run for all the particle files
-for i= 2 %:size(files,2)
+for i= 1:size(files,2)
     
     tic;
     name=char(files(1,i));
