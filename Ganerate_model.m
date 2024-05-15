@@ -222,14 +222,7 @@ for i= 1:size(files,2)
             plot(ptCloudTformed.Location(:,1),ptCloudTformed.Location(:,2),'r.');
             plot(poslist(:,1),poslist(:,2),'go');
         end
-
-        % find the nearest data points for model points
-        diff_record1 = zeros(modelsize,2);
-
         
-        % caculate the nearest model point for data points 
-        diff_record2 = zeros(num,2);
-
         score(r,1:2) = [mean(diff_record1(:,1)) mean(diff_record2(:,1))];
         score(r,3) = mean(diff_record1(:,1))+mean(diff_record2(:,1));
         
