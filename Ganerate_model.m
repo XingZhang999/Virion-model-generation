@@ -1,8 +1,9 @@
 % Step 2
 % After template matching,
-% try to ganerate Virus model for each virion,
+% try to ganerate model for each target,
 % writeout a image file model.png for checking the fitting,
 % and a text file model.log to save the paramters.
+
 % By Xing Zhang @20240106
 
 clear;clc
