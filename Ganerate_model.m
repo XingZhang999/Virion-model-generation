@@ -225,28 +225,11 @@ for i= 1:size(files,2)
 
         % find the nearest data points for model points
         diff_record1 = zeros(modelsize,2);
-        for ii=1:modelsize
-            modeldist = sqrt( sum((ptCloudTformed.Location(ii,1:2)-poslist(:,1:2)).^2,2) );
-            [mindist,minID] = min(modeldist);
 
-            diff1 = norm(poslist(minID,1:2)-ptCloudTformed.Location(ii,1:2));
-            diffang1 = acosd(dot(Xvector(minID,1:3),Back3Dv(ii,1:3)));
-
-            diff_record1(ii,1:2) = [diff1 diffang1]; %*diffang1];
-        end
         
         % caculate the nearest model point for data points 
         diff_record2 = zeros(num,2);
-        for ii=1:num
-            modeldist = sqrt( sum((ptCloudTformed.Location(:,1:2)-poslist(ii,1:2)).^2,2) );
-            [mindist,minID] = min(modeldist);
-            
-            diff2 = norm(poslist(ii,1:2)-ptCloudTformed.Location(minID,1:2));
-            diffang2 = acosd(dot(Xvector(ii,1:3),Back3Dv(minID,1:3)));
 
-            diff_record2(ii,1:2) = [diff2 diffang2]; %*diffang2]; %diff1+diff2]; 
-        
-        end
         score(r,1:2) = [mean(diff_record1(:,1)) mean(diff_record2(:,1))];
         score(r,3) = mean(diff_record1(:,1))+mean(diff_record2(:,1));
         
