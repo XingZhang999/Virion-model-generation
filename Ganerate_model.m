@@ -249,7 +249,7 @@ for i= 1:size(files,2)
         end
         score(r,1:2) = [mean(diff_record1(:,1)) mean(diff_record2(:,1))];
         score(r,3) = mean(diff_record1(:,1))+mean(diff_record2(:,1));
-        %score(r) = mean(diff_record1(:,1))*mean(diff_record1(:,2))+mean(diff_record2(:,1))*mean(diff_record2(:,2));
+        
         fprintf('diff %.1f - %.1f, %.1f ---\n',score(r,:));
 
     end
